@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi-Cloud OCR System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── CSS Reset & Variables ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0a0e1a;
+      --surface:      #111827;
+      --surface2:     #1a2235;
+      --border:       #1f2d44;
+      --azure:        #0078d4;
+      --azure-light:  #3aa0ff;
+      --aws:          #ff9900;
+      --aws-light:    #ffb84d;
+      --accent:       #7c3aed;
+      --accent-light: #a78bfa;
+      --success:      #10b981;
+      --error:        #ef4444;
+      --warning:      #f59e0b;
+      --text:         #e2e8f0;
+      --text-muted:   #64748b;
+      --text-dim:     #94a3b8;
+      --radius:       14px;
+      --shadow:       0 4px 32px rgba(0,0,0,0.4);
+    }
+
+    html { height: 100%; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Background glow blobs ───────────────────────────────────────────── */
+    .bg-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.12;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-orb-1 { width: 600px; height: 600px; background: #0078d4; top: -200px; left: -200px; }
+    .bg-orb-2 { width: 500px; height: 500px; background: #7c3aed; bottom: -100px; right: -100px; }
+    .bg-orb-3 { width: 300px; height: 300px; background: #ff9900; top: 40%; left: 50%; }
+
+    /* ── Layout ──────────────────────────────────────────────────────────── */
+    .container { position: relative; z-index: 1; max-width: 920px; margin: 0 auto; padding: 40px 20px 80px; }
+
+    /* ── Header ──────────────────────────────────────────────────────────── */
+    header { text-align: center; margin-bottom: 48px; }
+
+    .logo-row {
+      display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 18px;
+    }
+    .logo-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--azure), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; box-shadow: 0 0 24px rgba(124,58,237,0.4);
+    }
+    h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px;
+         background: linear-gradient(135deg, #ffffff 0%, var(--accent-light) 100%);
+         -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .tagline { color: var(--text-dim); font-size: 0.95rem; margin-top: 6px; }
+
+    .cloud-pills { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+    .pill {
+      padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .pill-azure { background: rgba(0,120,212,0.15); color: var(--azure-light); border: 1px solid rgba(0,120,212,0.3); }
+    .pill-aws   { background: rgba(255,153,0,0.15); color: var(--aws-light);   border: 1px solid rgba(255,153,0,0.3);   }
+
+    /* ── Config Panel ────────────────────────────────────────────────────── */
+    .config-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow);
+    }
+    .config-title {
+      font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--text-muted); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 620px) { .config-grid { grid-template-columns: 1fr; } }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 0.78rem; font-weight: 500; color: var(--text-dim); }
+    .form-group input, .form-group select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 9px 12px;
+      font-size: 0.85rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+    .form-group input::placeholder { color: var(--text-muted); }
+
+    /* ── Cloud selector tabs ─────────────────────────────────────────────── */
+    .cloud-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .cloud-tab {
+      flex: 1; padding: 10px; border-radius: 10px; border: 2px solid var(--border);
+      background: var(--surface2); color: var(--text-dim); font-size: 0.85rem;
+      font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .cloud-tab:hover { border-color: var(--accent); color: var(--text); }
+    .cloud-tab.active-azure { border-color: var(--azure); background: rgba(0,120,212,0.1); color: var(--azure-light); }
+    .cloud-tab.active-aws   { border-color: var(--aws);   background: rgba(255,153,0,0.1);  color: var(--aws-light);   }
+    .cloud-tab.active-auto  { border-color: var(--accent); background: rgba(124,58,237,0.1); color: var(--accent-light); }
+
+    /* ── Drop Zone ───────────────────────────────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 56px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .drop-zone::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(0,120,212,0.04), rgba(124,58,237,0.04));
+      opacity: 0; transition: opacity 0.25s;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(124,58,237,0.1);
+    }
+    .drop-zone:hover::before, .drop-zone.dragover::before { opacity: 1; }
+    .drop-zone.dragover { transform: scale(1.01); }
+
+    .drop-icon { font-size: 3rem; margin-bottom: 12px; display: block; }
+    .drop-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 6px; }
+    .drop-sub   { font-size: 0.83rem; color: var(--text-muted); }
+    .drop-formats { margin-top: 10px; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+    .fmt-badge {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 2px 8px; font-size: 0.72rem; color: var(--text-muted);
+    }
+
+    #fileInput { display: none; }
+
+    /* ── Preview ─────────────────────────────────────────────────────────── */
+    .preview-box {
+      display: none; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 20px;
+      animation: fadeIn 0.3s ease;
+    }
+    .preview-inner { display: flex; gap: 16px; align-items: flex-start; }
+    .preview-img { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+    .preview-info { flex: 1; }
+    .preview-name { font-weight: 600; font-size: 0.95rem; word-break: break-all; }
+    .preview-meta { color: var(--text-muted); font-size: 0.8rem; margin-top: 4px; }
+    .preview-route {
+      margin-top: 10px; padding: 8px 12px; border-radius: 8px;
+      font-size: 0.78rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .route-azure { background: rgba(0,120,212,0.15); color: var(--azure-light); }
+    .route-aws   { background: rgba(255,153,0,0.15);  color: var(--aws-light);   }
+    .route-textract { background: rgba(16,185,129,0.15); color: #34d399; }
+    .remove-btn {
+      background: none; border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text-muted); cursor: pointer; padding: 6px 10px; font-size: 0.8rem;
+      transition: all 0.2s; margin-top: 8px;
+    }
+    .remove-btn:hover { border-color: var(--error); color: var(--error); }
+
+    /* ── Submit Button ───────────────────────────────────────────────────── */
+    .submit-btn {
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg, var(--accent), #5b21b6);
+      border: none; border-radius: var(--radius);
+      color: white; font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: all 0.25s;
+      letter-spacing: 0.3px; position: relative; overflow: hidden;
+      box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+    }
+    .submit-btn::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .submit-btn:hover:not(:disabled)::after { opacity: 1; }
+    .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(124,58,237,0.5); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .submit-btn.loading { animation: pulse 1.2s infinite; }
+
+    /* ── Progress bar ────────────────────────────────────────────────────── */
+    .progress-wrap { margin-top: 16px; display: none; }
+    .progress-label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; }
+    .progress-bar { height: 4px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--azure), var(--accent), var(--aws));
+      background-size: 200% 100%;
+      border-radius: 99px;
+      animation: progressAnim 1.5s linear infinite;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+    @keyframes progressAnim { 0%{background-position:0% 0%} 100%{background-position:200% 0%} }
+
+    /* ── Result Card ─────────────────────────────────────────────────────── */
+    .result-card {
+      display: none; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-top: 28px; overflow: hidden;
+      animation: slideUp 0.4s ease; box-shadow: var(--shadow);
+    }
+    .result-header {
+      padding: 18px 24px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(124,58,237,0.05), rgba(0,120,212,0.05));
+    }
+    .result-title { font-weight: 700; font-size: 1rem; }
+    .result-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+    .badge {
+      padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600;
+    }
+    .badge-provider-azure    { background: rgba(0,120,212,0.2); color: var(--azure-light); }
+    .badge-provider-aws      { background: rgba(255,153,0,0.2);    color: var(--aws-light); }
+    .badge-provider-rekognition { background: rgba(255,153,0,0.2); color: var(--aws-light); }
+    .badge-provider-textract    { background: rgba(16,185,129,0.2); color: #34d399; }
+    .badge-latency { background: rgba(255,255,255,0.05); color: var(--text-dim); }
+    .badge-success { background: rgba(16,185,129,0.15); color: #34d399; }
+    .badge-error   { background: rgba(239,68,68,0.15);   color: #f87171; }
+
+    .result-body { padding: 24px; }
+    .result-text-wrap {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px; font-family: 'Inter', monospace;
+      font-size: 0.85rem; line-height: 1.7; color: var(--text);
+      white-space: pre-wrap; word-break: break-word; max-height: 360px; overflow-y: auto;
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    }
+    .result-actions { display: flex; gap: 10px; margin-top: 16px; }
+    .action-btn {
+      padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text-dim); font-size: 0.82rem;
+      font-weight: 500; cursor: pointer; transition: all 0.2s; font-family: inherit;
+    }
+    .action-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+
+    /* ── Stats row ───────────────────────────────────────────────────────── */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 28px; }
+    @media (max-width: 560px) { .stats-row { grid-template-columns: 1fr; } }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px; text-align: center;
+    }
+    .stat-val { font-size: 1.8rem; font-weight: 800; color: var(--accent-light); }
+    .stat-lbl { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+    /* ── Error / info banners ────────────────────────────────────────────── */
+    .banner { padding: 14px 18px; border-radius: 10px; font-size: 0.85rem; margin-top: 16px; display: flex; gap: 10px; align-items: flex-start; }
+    .banner-error   { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: #f87171; }
+    .banner-warning { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: var(--warning); }
+    .banner-info    { background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.25); color: var(--accent-light); }
+    .banner-success { background: rgba(16,185,129,0.1);  border: 1px solid rgba(16,185,129,0.25); color: #34d399; }
+    .banner-icon { font-size: 1.1rem; flex-shrink: 0; }
+
+    /* ── History panel ───────────────────────────────────────────────────── */
+    .history-section { margin-top: 40px; }
+    .section-title { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 14px; }
+    .history-list { display: flex; flex-direction: column; gap: 8px; }
+    .history-item {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; transition: border-color 0.2s; font-size: 0.85rem;
+    }
+    .history-item:hover { border-color: var(--accent); }
+    .history-left { display: flex; align-items: center; gap: 10px; }
+    .history-name { font-weight: 500; }
+    .history-meta { color: var(--text-muted); font-size: 0.75rem; }
+    .history-view-btn { color: var(--accent-light); font-size: 0.78rem; font-weight: 600; }
+
+    /* ── Animations ──────────────────────────────────────────────────────── */
+    @keyframes fadeIn   { from{opacity:0} to{opacity:1} }
+    @keyframes slideUp  { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:0.65} }
+    @keyframes spin     { to{transform:rotate(360deg)} }
+
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 8px; }
+
+    /* ── Footer ──────────────────────────────────────────────────────────── */
+    footer { text-align: center; margin-top: 60px; color: var(--text-muted); font-size: 0.78rem; }
+    footer span { color: var(--accent-light); }
+  </style>
+</head>
+<body>
+
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
+
+  <div class="container">
+
+    <!-- Header -->
+    <header>
+      <div class="logo-row">
+        <div class="logo-icon">🔍</div>
+        <h1>Multi-Cloud OCR</h1>
+      </div>
+      <p class="tagline">Extract text from images with smart Azure + AWS routing, failover & cost optimization</p>
+      <div class="cloud-pills">
+        <span class="pill pill-azure">☁ Azure Computer Vision</span>
+        <span class="pill pill-aws">⚡ AWS Rekognition</span>
+        <span class="pill pill-aws">📄 AWS Textract</span>
+      </div>
+    </header>
+
+    <!-- Config Panel -->
+    <div class="config-panel" id="configPanel">
+      <div class="config-title">⚙️ API Configuration</div>
+
+      <!-- Cloud selector -->
+      <div class="cloud-tabs">
+        <button class="cloud-tab active-auto" id="tabAuto"    onclick="selectCloud('auto')"   >🤖 Auto Route</button>
+        <button class="cloud-tab"             id="tabAzure"   onclick="selectCloud('azure')"  >☁ Azure Only</button>
+        <button class="cloud-tab"             id="tabAws"     onclick="selectCloud('aws')"    >⚡ AWS Only</button>
+      </div>
+
+      <div class="config-grid">
+        <div class="form-group">
+          <label>Azure Function Base URL</label>
+          <input id="azureUrl" type="url" placeholder="https://ocr-serverless-func.azurewebsites.net/api" />
+        </div>
+        <div class="form-group">
+          <label>Azure Function Key (x-functions-key)</label>
+          <input id="azureKey" type="password" placeholder="Leave blank if anonymous" />
+        </div>
+        <div class="form-group">
+          <label>AWS API Gateway URL</label>
+          <input id="awsUrl" type="url" placeholder="https://xxxxxxxx.execute-api.us-east-1.amazonaws.com/prod" />
+        </div>
+        <div class="form-group">
+          <label>AWS API Key (x-api-key)</label>
+          <input id="awsKey" type="password" placeholder="Leave blank if not configured" />
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div class="banner banner-warning">
+          <span class="banner-icon">⚠️</span>
+          <div><strong>No backend yet?</strong> The UI will work once you deploy your Azure Functions and AWS Lambdas. Fill in the URLs after deployment — or use <strong>Demo Mode</strong> to preview the UI without a live backend.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="action-btn" onclick="saveConfig()">💾 Save Config</button>
+        <button class="action-btn" onclick="loadDemoMode()" style="color:var(--aws-light);border-color:rgba(255,153,0,0.4);">🎭 Demo Mode</button>
+        <button class="action-btn" onclick="toggleConfig()" id="collapseBtn">▲ Collapse</button>
+      </div>
+    </div>
+
+    <!-- Upload area -->
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <span class="drop-icon">🖼️</span>
+      <div class="drop-title">Drop your image here, or click to browse</div>
+      <div class="drop-sub">Supports JPEG, PNG, TIFF, BMP, GIF, WebP — or PDFs for document OCR</div>
+      <div class="drop-formats">
+        <span class="fmt-badge">JPG</span><span class="fmt-badge">PNG</span>
+        <span class="fmt-badge">TIFF</span><span class="fmt-badge">BMP</span>
+        <span class="fmt-badge">GIF</span><span class="fmt-badge">WebP</span>
+        <span class="fmt-badge">PDF</span>
+      </div>
+      <input type="file" id="fileInput" accept="image/*,.pdf" />
+    </div>
+
+    <!-- Preview -->
+    <div class="preview-box" id="previewBox">
+      <div class="preview-inner">
+        <img id="previewImg" class="preview-img" src="" alt="preview" />
+        <div class="preview-info">
+          <div class="preview-name" id="previewName">-</div>
+          <div class="preview-meta" id="previewMeta">-</div>
+          <div class="preview-route" id="previewRoute">-</div>
+          <button class="remove-btn" onclick="clearFile()">✕ Remove</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <button class="submit-btn" id="submitBtn" onclick="runOCR()" disabled>
+      🔍 Run OCR
+    </button>
+
+    <!-- Progress -->
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-label" id="progressLabel">Uploading to cloud…</div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+
+    <!-- Banners (error / info) -->
+    <div id="bannerArea"></div>
+
+    <!-- Result -->
+    <div class="result-card" id="resultCard">
+      <div class="result-header">
+        <div class="result-title">📝 Extracted Text</div>
+        <div class="result-badges" id="resultBadges"></div>
+      </div>
+      <div class="result-body">
+        <div class="result-text-wrap" id="resultText"></div>
+        <div class="result-actions">
+          <button class="action-btn" onclick="copyResult()">📋 Copy Text</button>
+          <button class="action-btn" onclick="downloadResult()">⬇️ Download .txt</button>
+          <button class="action-btn" onclick="clearResult()">✕ Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow" style="display:none">
+      <div class="stat-card">
+        <div class="stat-val" id="statWords">0</div>
+        <div class="stat-lbl">Words Detected</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statChars">0</div>
+        <div class="stat-lbl">Characters</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statLatency">0ms</div>
+        <div class="stat-lbl">API Latency</div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="history-section" id="historySection" style="display:none;">
+      <div class="section-title">Recent OCR Results</div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+    <footer>
+      Built with ❤️ on <span>Azure</span> × <span>AWS</span> — Multi-Cloud OCR System
+    </footer>
+  </div>
+
+  <script>
+    // ── State ────────────────────────────────────────────────────────────────
+    let selectedFile = null;
+    let selectedCloud = 'auto';
+    let lastResult = null;
+    let history = JSON.parse(localStorage.getItem('ocr_history') || '[]');
+    let configCollapsed = false;
+    let demoMode = false;
+
+    // ── Routing Logic (mirrors server-side ocr_router.py) ────────────────────
+    const SIZE_THRESHOLD = 1_000_000; // 1MB
+
+    function predictRoute(file) {
+      const name = file.name.toLowerCase();
+      const isDoc = name.includes('_doc_') || name.endsWith('.pdf');
+      // PDFs → Azure (Read API); files >1MB → AWS Rekognition
+      if (isDoc) return { provider: 'azure', label: '☁ Azure Computer Vision (document)', cls: 'route-azure' };
+      if (file.size >= SIZE_THRESHOLD) return { provider: 'aws_rekognition', label: '⚡ AWS Rekognition (large image)', cls: 'route-aws' };
+      return { provider: 'azure', label: '☁ Azure Computer Vision (optimal)', cls: 'route-azure' };
+    }
+
+    // ── Cloud tab selector ────────────────────────────────────────────────────
+    function selectCloud(c) {
+      selectedCloud = c;
+      document.getElementById('tabAuto').className  = 'cloud-tab' + (c==='auto'  ? ' active-auto'  : '');
+      document.getElementById('tabAzure').className = 'cloud-tab' + (c==='azure' ? ' active-azure' : '');
+      document.getElementById('tabAws').className   = 'cloud-tab' + (c==='aws'   ? ' active-aws'   : '');
+      if (selectedFile) renderPreview(selectedFile);
+    }
+
+    // ── File handling ─────────────────────────────────────────────────────────
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault(); dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+    function handleFile(file) {
+      selectedFile = file;
+      renderPreview(file);
+      clearBanners();
+      document.getElementById('resultCard').style.display = 'none';
+      document.getElementById('statsRow').style.display = 'none';
+    }
+
+    function renderPreview(file) {
+      const box = document.getElementById('previewBox');
+      box.style.display = 'block';
+      document.getElementById('previewName').textContent = file.name;
+      document.getElementById('previewMeta').textContent =
+        `${(file.size / 1024).toFixed(1)} KB  ·  ${file.type || 'unknown type'}`;
+
+      const route = predictRoute(file);
+      const forced = selectedCloud !== 'auto';
+      const routeEl = document.getElementById('previewRoute');
+      if (forced) {
+        const forcedLabel = selectedCloud === 'azure' ? '☁ Forced: Azure Computer Vision' : '⚡ Forced: AWS Rekognition';
+        routeEl.textContent = forcedLabel;
+        routeEl.className = 'preview-route ' + (selectedCloud === 'azure' ? 'route-azure' : 'route-aws');
+      } else {
+        routeEl.textContent = '🤖 Smart Route → ' + route.label;
+        routeEl.className = 'preview-route ' + route.cls;
+      }
+
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        const reader = new FileReader();
+        reader.onload = e => { document.getElementById('previewImg').src = e.target.result; };
+        reader.readAsDataURL(file);
+      } else {
+        document.getElementById('previewImg').src = 'data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="%2364748b"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>';
+      }
+
+      document.getElementById('submitBtn').disabled = false;
+    }
+
+    function clearFile() {
+      selectedFile = null;
+      fileInput.value = '';
+      document.getElementById('previewBox').style.display = 'none';
+      document.getElementById('submitBtn').disabled = true;
+    }
+
+    // ── Config ────────────────────────────────────────────────────────────────
+    function saveConfig() {
+      localStorage.setItem('ocr_azure_url', document.getElementById('azureUrl').value);
+      localStorage.setItem('ocr_azure_key', document.getElementById('azureKey').value);
+      localStorage.setItem('ocr_aws_url',   document.getElementById('awsUrl').value);
+      localStorage.setItem('ocr_aws_key',   document.getElementById('awsKey').value);
+      showBanner('success', '💾', 'Configuration saved to browser storage!');
+    }
+
+    function loadConfig() {
+      document.getElementById('azureUrl').value = localStorage.getItem('ocr_azure_url') || '';
+      document.getElementById('azureKey').value = localStorage.getItem('ocr_azure_key') || '';
+      document.getElementById('awsUrl').value   = localStorage.getItem('ocr_aws_url')   || '';
+      document.getElementById('awsKey').value   = localStorage.getItem('ocr_aws_key')   || '';
+    }
+
+    function toggleConfig() {
+      configCollapsed = !configCollapsed;
+      document.getElementById('configPanel').querySelector('.config-grid').style.display = configCollapsed ? 'none' : 'grid';
+      document.getElementById('configPanel').querySelector('.cloud-tabs').style.display = configCollapsed ? 'none' : 'flex';
+      document.getElementById('collapseBtn').textContent = configCollapsed ? '▼ Expand' : '▲ Collapse';
+    }
+
+    function loadDemoMode() {
+      demoMode = true;
+      showBanner('info', '🎭', 'Demo Mode ON — uploading will simulate a fake OCR response without calling any real API.');
+    }
+
+    // ── OCR ───────────────────────────────────────────────────────────────────
+    // Read file and return pure base64 string (no data: prefix)
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function runOCR() {
+      if (!selectedFile) return;
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Running OCR…';
+      btn.classList.add('loading');
+
+      showProgressBar('Encoding image…', 10);
+      clearBanners();
+
+      if (demoMode) {
+        await sleep(700);
+        setProgress(100, 'Done!');
+        await sleep(300);
+        hideProgressBar();
+        resetBtn();
+        renderResult({
+          provider: predictRoute(selectedFile).provider,
+          latency_ms: Math.floor(Math.random() * 800 + 200),
+          text: `Hello World\nMulti-Cloud OCR Demo\nThis is a simulated result.\n\nFile: ${selectedFile.name}\nSize: ${(selectedFile.size/1024).toFixed(1)} KB\nRoute: ${predictRoute(selectedFile).label}\n\nIn production, this text would be extracted\nfrom the actual image by Azure or AWS OCR.`,
+          filename: selectedFile.name,
+        });
+        return;
+      }
+
+      // Real API call — send image as base64 directly (no pre-upload to blob/S3)
+      const azureUrl = (document.getElementById('azureUrl').value || '').trim().replace(/\/$/, '');
+      const awsUrl   = (document.getElementById('awsUrl').value   || '').trim().replace(/\/$/, '');
+      const azureKey = document.getElementById('azureKey').value.trim();
+      const awsKey   = document.getElementById('awsKey').value.trim();
+
+      if (!azureUrl && !awsUrl) {
+        hideProgressBar();
+        resetBtn();
+        showBanner('error', '❌', 'No API URLs configured. Please fill in at least one API URL above, or use Demo Mode.');
+        return;
+      }
+
+      const route = predictRoute(selectedFile);
+      const useAzure = selectedCloud === 'azure' || (selectedCloud === 'auto' && (route.provider === 'azure'));
+      const endpoint = useAzure ? azureUrl : awsUrl;
+
+      if (!endpoint) {
+        hideProgressBar();
+        resetBtn();
+        showBanner('warning', '⚠️', `This file routes to ${useAzure ? 'Azure' : 'AWS'} but that URL is not set. Configure it above.`);
+        return;
+      }
+
+      try {
+        // Encode image as base64 and send directly — no pre-upload needed
+        setProgress(30, 'Encoding image…');
+        const imageB64 = await fileToBase64(selectedFile);
+
+        const headers = { 'Content-Type': 'application/json' };
+        if (useAzure && azureKey) headers['x-functions-key'] = azureKey;
+        if (!useAzure && awsKey)  headers['x-api-key'] = awsKey;
+
+        setProgress(60, 'Sending to OCR engine…');
+        const body = useAzure
+          ? JSON.stringify({ image_base64: imageB64, filename: selectedFile.name })
+          : JSON.stringify({ image_base64: imageB64, s3_key: selectedFile.name });
+
+        setProgress(80, 'Waiting for OCR result…');
+        const res = await fetch(`${endpoint}/ocr`, { method: 'POST', headers, body });
+
+        let data;
+        try { data = await res.json(); }
+        catch { data = { error: 'Invalid JSON response from server' }; }
+
+        setProgress(100, 'Done!');
+        await sleep(300);
+        hideProgressBar();
+        resetBtn();
+
+        if (!res.ok || data.error) {
+          showBanner('error', '❌', `OCR Error: ${data.error || res.statusText}`);
+          return;
+        }
+
+        renderResult({ ...data, filename: selectedFile.name });
+
+      } catch (err) {
+        hideProgressBar(); resetBtn();
+        showBanner('error', '❌', `Network error: ${err.message}. Check your API URL and CORS settings.`);
+      }
+    }
+
+    function renderResult(data) {
+      const card = document.getElementById('resultCard');
+      card.style.display = 'block';
+
+      const providerName = {
+        azure: 'Azure Vision', aws_rekognition: 'AWS Rekognition',
+        aws_textract: 'AWS Textract', rekognition: 'AWS Rekognition', textract: 'AWS Textract',
+      }[data.provider] || data.provider;
+
+      const providerCls = {
+        azure: 'badge-provider-azure',
+        aws_rekognition: 'badge-provider-rekognition', rekognition: 'badge-provider-rekognition',
+        aws_textract: 'badge-provider-textract',       textract: 'badge-provider-textract',
+      }[data.provider] || 'badge-provider-aws';
+
+      document.getElementById('resultBadges').innerHTML = `
+        <span class="badge ${providerCls}">🤖 ${providerName}</span>
+        <span class="badge badge-latency">⏱ ${data.latency_ms}ms</span>
+        <span class="badge badge-success">✓ Success</span>
+      `;
+      document.getElementById('resultText').textContent = data.text || '(No text detected)';
+
+      // Stats
+      const words = data.text ? data.text.split(/\s+/).filter(Boolean).length : 0;
+      const chars = data.text ? data.text.length : 0;
+      document.getElementById('statWords').textContent = words;
+      document.getElementById('statChars').textContent = chars;
+      document.getElementById('statLatency').textContent = data.latency_ms + 'ms';
+      document.getElementById('statsRow').style.display = 'grid';
+
+      // Save history
+      lastResult = data;
+      const entry = { name: data.filename || selectedFile?.name, provider: providerName, latency: data.latency_ms, text: data.text, ts: Date.now() };
+      history.unshift(entry);
+      if (history.length > 10) history.pop();
+      localStorage.setItem('ocr_history', JSON.stringify(history));
+      renderHistory();
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function renderHistory() {
+      if (history.length === 0) return;
+      const section = document.getElementById('historySection');
+      section.style.display = 'block';
+      const list = document.getElementById('historyList');
+      list.innerHTML = history.slice(0, 5).map((h, i) => `
+        <div class="history-item" onclick="showHistoryItem(${i})">
+          <div class="history-left">
+            <div>
+              <div class="history-name">${h.name || 'image'}</div>
+              <div class="history-meta">${h.provider} · ${h.latency}ms · ${new Date(h.ts).toLocaleTimeString()}</div>
+            </div>
+          </div>
+          <div class="history-view-btn">View →</div>
+        </div>
+      `).join('');
+    }
+
+    function showHistoryItem(i) {
+      renderResult(history[i]);
+    }
+
+    // ── Actions ───────────────────────────────────────────────────────────────
+    function copyResult() {
+      const text = document.getElementById('resultText').textContent;
+      navigator.clipboard.writeText(text).then(() => showBanner('success', '📋', 'Text copied to clipboard!'));
+    }
+
+    function downloadResult() {
+      const text = document.getElementById('resultText').textContent;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = `ocr-result-${Date.now()}.txt`; a.click();
+    }
+
+    function clearResult() {
+      document.getElementById('resultCard').style.display = 'none';
+      document.getElementById('statsRow').style.display = 'none';
+    }
+
+    // ── Utilities ─────────────────────────────────────────────────────────────
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function resetBtn() {
+      const btn = document.getElementById('submitBtn');
+      btn.innerHTML = '🔍 Run OCR'; btn.classList.remove('loading'); btn.disabled = false;
+    }
+
+    function showProgressBar(label, pct) {
+      document.getElementById('progressWrap').style.display = 'block';
+      document.getElementById('progressLabel').textContent = label;
+      document.getElementById('progressFill').style.width = pct + '%';
+    }
+    function setProgress(pct, label) {
+      document.getElementById('progressFill').style.width = pct + '%';
+      if (label) document.getElementById('progressLabel').textContent = label;
+    }
+    function hideProgressBar() { document.getElementById('progressWrap').style.display = 'none'; }
+
+    function showBanner(type, icon, msg) {
+      const area = document.getElementById('bannerArea');
+      area.innerHTML = `<div class="banner banner-${type}"><span class="banner-icon">${icon}</span><div>${msg}</div></div>`;
+    }
+    function clearBanners() { document.getElementById('bannerArea').innerHTML = ''; }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    loadConfig();
+    renderHistory();
+  </script>
+</body>
+</html>

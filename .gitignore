@@ -1,0 +1,27 @@
+# Secrets
+.env
+azure-functions/local.settings.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+.python_packages/
+dist/
+build/
+
+# Lambda build artifacts
+aws-lambda/*/package/
+aws-lambda/*/function.zip
+
+# IDE
+.vscode/
+.idea/
+
+# Test output
+.pytest_cache/
+htmlcov/
+.coverage

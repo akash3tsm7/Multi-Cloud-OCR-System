@@ -1,0 +1,16 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "<YOUR_AZURE_STORAGE_CONNECTION_STRING>",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AZURE_STORAGE_CONNECTION_STRING": "<YOUR_AZURE_STORAGE_CONNECTION_STRING>",
+    "AZURE_VISION_KEY": "<YOUR_AZURE_COMPUTER_VISION_KEY>",
+    "AZURE_VISION_ENDPOINT": "https://<YOUR_RESOURCE_NAME>.cognitiveservices.azure.com/",
+    "APPINSIGHTS_INSTRUMENTATIONKEY": "<YOUR_APP_INSIGHTS_KEY>",
+    "AWS_ACCESS_KEY_ID": "<YOUR_AWS_ACCESS_KEY_ID>",
+    "AWS_SECRET_ACCESS_KEY": "<YOUR_AWS_SECRET_ACCESS_KEY>",
+    "AWS_REGION": "us-east-1",
+    "AWS_S3_INPUT_BUCKET": "ocr-input-bucket",
+    "AWS_S3_OUTPUT_BUCKET": "ocr-output-bucket"
+  }
+}
