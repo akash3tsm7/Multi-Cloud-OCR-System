@@ -15,15 +15,15 @@ from msrest.authentication import CognitiveServicesCredentials
 
 logger = logging.getLogger(__name__)
 
-# Loaded from environment variables (set in local.settings.json or App Settings)
-_VISION_KEY = os.environ["AZURE_VISION_KEY"]
-_VISION_ENDPOINT = os.environ["AZURE_VISION_ENDPOINT"]
-
-
 def _get_client() -> ComputerVisionClient:
+    key = os.environ.get("AZURE_VISION_KEY", "")
+    endpoint = os.environ.get("AZURE_VISION_ENDPOINT", "")
+    if not key or not endpoint:
+        raise RuntimeError("Missing Azure Vision configurations in environment variables.")
+        
     return ComputerVisionClient(
-        _VISION_ENDPOINT,
-        CognitiveServicesCredentials(_VISION_KEY),
+        endpoint,
+        CognitiveServicesCredentials(key),
     )
 
 

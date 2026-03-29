@@ -8,26 +8,24 @@ import logging
 from io import BytesIO
 
 import boto3
-from azure.storage.blob import BlobServiceClient
+from azure.storage.blob import BlobServiceClient, ContentSettings
 
 logger = logging.getLogger(__name__)
 
 # ── Azure Blob Storage ─────────────────────────────────────────────────────────
 
-_AZURE_CONN_STR = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-
-
 def _azure_client() -> BlobServiceClient:
-    if not _AZURE_CONN_STR:
+    conn_str = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+    if not conn_str:
         raise RuntimeError("AZURE_STORAGE_CONNECTION_STRING is not set.")
-    return BlobServiceClient.from_connection_string(_AZURE_CONN_STR)
+    return BlobServiceClient.from_connection_string(conn_str)
 
 
 def azure_upload(container: str, blob_name: str, data: bytes, content_type: str = "text/plain") -> str:
     """Upload bytes to Azure Blob. Returns blob URL."""
     client = _azure_client()
     blob_client = client.get_blob_client(container=container, blob=blob_name)
-    blob_client.upload_blob(data, overwrite=True, content_settings={"content_type": content_type})
+    blob_client.upload_blob(data, overwrite=True, content_settings=ContentSettings(content_type=content_type))
     logger.info(f"[AzureBlob] Uploaded {blob_name} to container '{container}'.")
     return blob_client.url
 
